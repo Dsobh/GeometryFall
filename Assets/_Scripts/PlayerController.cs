@@ -14,6 +14,12 @@ public class PlayerController : MonoBehaviour
     private Sprite[] _sprites;
     private int id = 2;
 
+    [SerializeField]
+    private GameObject[] lifes;
+    private int lifesNumber = 3;
+
+    private int multiplier = 1;
+
     #region CameraBounds
     private Vector3 bottomLeft;
     private Vector3 topRight;
@@ -30,9 +36,15 @@ public class PlayerController : MonoBehaviour
     #endregion
 
     #region Events
+    //Score event
     public delegate void _OnScoreChange(int points);
     public static event _OnScoreChange OnScoreChange;
     public UnityEvent OnNewScore;
+
+    //Multiplier Event
+    public delegate void _OnMultiplierChange(int multiplier);
+    public static event _OnMultiplierChange OnMultiplierChange;
+    public UnityEvent OnNewMultiplier;
     #endregion
 
 
@@ -60,13 +72,13 @@ public class PlayerController : MonoBehaviour
             MovePlayer(-1);
         }
 
-        if(timeToChangeCounter >= timeToChange)
+        /*if(timeToChangeCounter >= timeToChange)
         {
-            ChangeForm();
+            _spriteRenderer.color = colors[Random.Range(0, colors.Length - 1)];
             timeToChange = Random.Range(minimTimeToChange, maxTimeToChange);
             timeToChangeCounter = 0;
         }
-        timeToChangeCounter += Time.deltaTime;
+        timeToChangeCounter += Time.deltaTime;*/
     }
 
     public void MovePlayer(int direction)
@@ -102,37 +114,123 @@ public class PlayerController : MonoBehaviour
         _spriteRenderer.sprite = _sprites[newIndex];
     }
 
+    /// <summary>
+    /// Actualiza las vidas visibles en la pantalla del juego
+    /// </summary>
+    private void UpdateLife()
+    {
+        if(lifesNumber == 1)
+        {
+            lifes[0].SetActive(false);
+            lifes[1].SetActive(false);
+        }else if(lifesNumber == 2)
+        {
+            lifes[0].SetActive(true);
+            lifes[1].SetActive(false);
+        }else if(lifesNumber == 3)
+        {
+            lifes[0].SetActive(true);
+            lifes[1].SetActive(true);
+        }
+        
+    }
+
+    /// <summary>
+    /// Añade o resta el número de vidas. 
+    /// </summary>
+    /// <param name="number">Entero con el número de vidas: Valor posible +1 o -1</param>
+    private void ChangeLifeNumber(int number)
+    {
+        lifesNumber += number;
+        if(lifesNumber == 0)
+        {
+            Debug.Log("GAME OVER!");
+            //Time.timeScale = 0;
+            //Debug.Log("Game Over!");
+        }
+    }
+
     void OnTriggerEnter2D(Collider2D other)
     {
+
+        Color figureColor = other.gameObject.GetComponent<SpriteRenderer>().color;
+
         if (other.CompareTag("Figure"))
         {
             if (id == other.gameObject.GetComponent<FigureController>().GetFigureId())
             {
-                Color figureColor = other.gameObject.GetComponent<SpriteRenderer>().color;
                 if (CompareColor(figureColor))
                 {
-                    //We add points
                     OnNewScore.Invoke();
                     if(OnScoreChange != null)
                     {
-                        OnScoreChange(1);
+                        OnScoreChange(1 * multiplier);
                     }
+
+                    //Increment multiplier and Change Figure
+                    multiplier++;
+
+                    OnNewMultiplier.Invoke();
+                    if(OnMultiplierChange != null)
+                    {
+                        OnMultiplierChange(multiplier);
+                    }
+
+                    ChangeForm();
                 }
                 else
                 {
-                    _spriteRenderer.color = figureColor;
+                    //Add a point and restart the multiplier
+                    multiplier = 1;
+                    OnNewScore.Invoke();
+                    OnNewMultiplier.Invoke();
+                    if(OnScoreChange != null)
+                    {
+                        OnScoreChange(1 * multiplier);
+                    }
+
+                    if(OnMultiplierChange != null)
+                    {
+                        OnMultiplierChange(multiplier);
+                    }
+                    
+                    
+                    //Change Figure and color
+                    _spriteRenderer.color = other.GetComponent<SpriteRenderer>().color;
+                    ChangeForm();
                 }
             }
             else
             {
-                //We substract points
-                OnNewScore.Invoke();
-                if(OnScoreChange != null)
+                if(CompareColor(figureColor))
                 {
-                    OnScoreChange(-1);
+                    //Add a point and restart the multiplier
+                    multiplier = 1;
+                    OnNewScore.Invoke();
+                    OnNewMultiplier.Invoke();
+                    if(OnScoreChange != null)
+                    {
+                        OnScoreChange(1 * multiplier);
+                    }
+
+                    if(OnMultiplierChange != null)
+                    {
+                        OnMultiplierChange(multiplier);
+                    }
+
+                }else
+                {
+                    ChangeLifeNumber(-1);
+                    UpdateLife();
+                    multiplier = 1;
+                    OnNewMultiplier.Invoke();
+                    
+                    if(OnMultiplierChange != null)
+                    {
+                        OnMultiplierChange(multiplier);
+                    }
                 }
-                //Time.timeScale = 0;
-                //Debug.Log("Game Over!");
+                
             }
             Destroy(other.gameObject);
 

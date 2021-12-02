@@ -7,16 +7,20 @@ public class UIManager : MonoBehaviour
 {
     [SerializeField]
     private TMP_Text scoreText;
+    [SerializeField]
+    private TMP_Text multiplierText;
     private int score = 0;
     
     void OnEnable()
     {
         PlayerController.OnScoreChange += AddScore;
+        PlayerController.OnMultiplierChange += UpdateMultiplier;
     }
 
     void OnDisable()
     {
         PlayerController.OnScoreChange -= AddScore;
+        PlayerController.OnMultiplierChange -= UpdateMultiplier;
     }
 
 
@@ -24,6 +28,7 @@ public class UIManager : MonoBehaviour
     void Start()
     {
         scoreText.text = "000000";
+        multiplierText.text = "x1";
     }
 
     private void AddScore(int points)
@@ -49,6 +54,11 @@ public class UIManager : MonoBehaviour
             newText = "0" + newText;
         }
         return newText;
+    }
+
+    private void UpdateMultiplier(int multiplier)
+    {
+        multiplierText.text = "x" + multiplier;
     }
 
 }
